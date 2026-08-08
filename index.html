@@ -1,184 +1,566 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <title>Dashboard Financeiro</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-  </style>
-</head>
-<body class="text-gray-800 antialiased p-4 md:p-6">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Dashboard Financeiro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f3f4f6;
+      }
+    </style>
+  </head>
+  <body class="text-gray-800 antialiased p-4 md:p-6">
+    <!-- Header -->
+    <?!= include('indexHeader'); ?>
 
-  <!-- Header -->
-  <?!= include('indexHeader'); ?>
-
-  <!-- Tab Containers -->
-  <div id="tab-summary" class="tab-content flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-6 w-full max-w-7xl mx-auto">
-    <!-- Card 1: Portfolio -->
-    <div class="w-full lg:w-1/2">
-      <?!= include('portfolioCard'); ?>
+    <!-- Tab Containers -->
+    <div
+      id="tab-summary"
+      class="tab-content flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-6 w-full max-w-7xl mx-auto"
+    >
+      <!-- Dashboard summary -->
+      <div class="w-full"><?!= include('portfolioCard'); ?></div>
     </div>
 
-    <!-- Card 2: Expenses -->
-    <div class="w-full lg:w-1/2">
-      <?!= include('expensesChart'); ?>
+    <div
+      id="tab-expenses"
+      class="tab-content hidden grid grid-cols-1 gap-6 w-full max-w-7xl mx-auto"
+    >
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div><?!= include('expensesPortfolioCard'); ?></div>
+        <div><?!= include('expensesChart'); ?></div>
+        <div><?!= include('buttonsResources'); ?></div>
+      </div>
+      <div><?!= include('expensesTable'); ?></div>
     </div>
-  </div>
 
-  <div id="tab-expenses" class="tab-content hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    <!-- Future expenses cards -->
-  </div>
+    <div
+      id="tab-investments"
+      class="tab-content hidden grid grid-cols-1 lg:grid-cols-3 gap-6 w-full max-w-7xl mx-auto"
+    >
+      <!-- Card 4: Assets -->
+      <div class="lg:col-span-3"><?!= include('assets'); ?></div>
+    </div>
 
-  <div id="tab-investments" class="tab-content hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    <!-- Card 3: Resources -->
-    <?!= include('buttonsResources'); ?>
+    <script>
+      var allAssets = [];
+      var allExpensesRecords = [];
+      var allIncomingRecords = [];
+      var expensesChart = null;
+      var allExpensesData = { monthlyIncome: {}, monthlyExpenses: {} };
+      var selectedDateKey = "";
 
-    <!-- Card 4: Assets -->
-    <?!= include('assets'); ?>
-  </div>
-
-  <script>
-    var allAssets = [];
-    var expensesChart = null;
-    var allExpensesData = { monthlyIncome: {}, monthlyExpenses: {} };
-
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(function(el) {
-        el.classList.add('hidden');
-      });
-      document.getElementById('tab-' + tabId).classList.remove('hidden');
-      
-      var tabs = ['summary', 'expenses', 'investments'];
-      tabs.forEach(function(t) {
-        var btn = document.getElementById('btn-tab-' + t);
-        if (t === tabId) {
-          btn.classList.remove('text-gray-500', 'border-transparent', 'hover:border-gray-200');
-          btn.classList.add('text-emerald-600', 'border-emerald-600');
-        } else {
-          btn.classList.remove('text-emerald-600', 'border-emerald-600');
-          btn.classList.add('text-gray-500', 'border-transparent', 'hover:border-gray-200');
-        }
-      });
-      
-      var titles = {
-        'summary': 'Resumo Financeiro',
-        'expenses': 'Gestão de Despesas',
-        'investments': 'Visão Geral de Investimentos'
-      };
-      var titleEl = document.getElementById('header-title');
-      if (titleEl) titleEl.innerText = titles[tabId];
-    }
-
-    window.onload = function() {
-      loadData();
-    };
-
-    function loadData() {
-      google.script.run
-        .withSuccessHandler(function(summary) {
-          allExpensesData = summary || { monthlyIncome: {}, monthlyExpenses: {} };
-          // updatePortfolio(); // Called later via filterByDate() when populating filter
-
-          google.script.run
-            .withSuccessHandler(function(data) {
-              processChart(data);
-              populateMonthFilter();
-            })
-            .getDataToDashboard();
-        })
-        .getSummaryPortfolio();
-    }
-
-    function populateMonthFilter() {
-      var datesSet = new Set();
-      if (allExpensesData && allExpensesData.monthlyIncome) {
-        Object.keys(allExpensesData.monthlyIncome).forEach(function(k) { datesSet.add(k); });
+      function isAppsScriptEnvironment() {
+        return (
+          typeof google !== "undefined" &&
+          google.script &&
+          typeof google.script.run === "object"
+        );
       }
-      if (allExpensesData && allExpensesData.monthlyExpenses) {
-        Object.keys(allExpensesData.monthlyExpenses).forEach(function(k) { datesSet.add(k); });
-      }
-      if (allAssets) {
-        allAssets.forEach(function(a) { 
-          if (a.date) datesSet.add(a.date.trim().toUpperCase().replace("/", "-")); 
+
+      function runServerMethod(methodName) {
+        return new Promise(function (resolve, reject) {
+          if (!isAppsScriptEnvironment()) {
+            reject(new Error("Google Apps Script environment unavailable"));
+            return;
+          }
+
+          var runner = google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(function (err) {
+              reject(
+                err || new Error("Google script call failed: " + methodName),
+              );
+            });
+
+          var args = Array.prototype.slice.call(arguments, 1);
+          switch (methodName) {
+            case "getSummaryPortfolio":
+              runner.getSummaryPortfolio(...args);
+              break;
+            case "getDataToDashboard":
+              runner.getDataToDashboard(...args);
+              break;
+            default:
+              reject(new Error("Server method not found: " + methodName));
+              break;
+          }
         });
       }
-      
-      var datesArray = Array.from(datesSet);
-      if (datesArray.length === 0) return;
-      
-      var months = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
-      var today = new Date();
-      var currentMonthStr = months[today.getMonth()] + "-" + today.getFullYear();
-      
-      datesArray.sort(function(a, b) {
-        var partsA = a.split('-');
-        var partsB = b.split('-');
-        if (partsA.length !== 2 || partsB.length !== 2) return 0;
-        var yearA = parseInt(partsA[1]);
-        var yearB = parseInt(partsB[1]);
-        if (yearA !== yearB) return yearB - yearA;
-        var monthA = months.indexOf(partsA[0]);
-        var monthB = months.indexOf(partsB[0]);
-        return monthB - monthA;
-      });
 
-      var selectEl = document.getElementById("selectDate");
-      if (!selectEl) return;
-      
-      selectEl.innerHTML = "";
-      var foundCurrent = false;
-      datesArray.forEach(function(d) {
-        var opt = document.createElement("option");
-        opt.value = d;
-        opt.text = d;
-        if (d === currentMonthStr) {
-          foundCurrent = true;
-          opt.selected = true;
-        }
-        selectEl.appendChild(opt);
-      });
-      
-      if (!foundCurrent && datesArray.length > 0) {
-        selectEl.options[0].selected = true;
+      function loadLocalJson(fileName) {
+        return fetch("./data/" + fileName + ".json", { cache: "no-store" })
+          .then(function (response) {
+            if (!response.ok) {
+              throw new Error("Falha ao carregar " + fileName + ".json");
+            }
+            return response.json();
+          })
+          .catch(function (error) {
+            console.warn("Local JSON load failed for", fileName, error);
+            return [];
+          });
       }
-      
-      filterByDate();
-    }
 
+      function computeSummaryPortfolio(incomingData, expensesData) {
+        var incomingMap = {};
+        var expensesMap = {};
 
-    function sortDates(listDates) {
-      if (!listDates || listDates.length === 0) return [];
-      
-      const months = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
-      const today = new Date();
-      const currentDate = `${months[today.getMonth()]}-${today.getFullYear()}`;
+        if (Array.isArray(incomingData)) {
+          incomingData.forEach(function (item) {
+            var month = item.month
+              ? item.month.toString().trim().toUpperCase()
+              : "";
+            var year = item.year ? item.year.toString().trim() : "";
+            var value = parseFloat(item.value) || 0;
+            if (month && year) {
+              var key = month + "-" + year;
+              incomingMap[key] = (incomingMap[key] || 0) + value;
+            }
+          });
+        }
 
-      const index = listDates.indexOf(currentDate);
+        if (Array.isArray(expensesData)) {
+          expensesData.forEach(function (item) {
+            var rawMonth = item.month
+              ? item.month.toString().trim().toUpperCase()
+              : "";
+            var year = item.year ? item.year.toString().trim() : "";
+            var value = parseFloat(item.value) || 0;
+            if (rawMonth && year) {
+              var key = rawMonth.slice(0, 3).toUpperCase() + "-" + year;
+              expensesMap[key] = (expensesMap[key] || 0) + value;
+            }
+          });
+        }
 
-      if (index === -1) return listDates;
+        return { monthlyIncome: incomingMap, monthlyExpenses: expensesMap };
+      }
 
-      return [
-        ...listDates.slice(index),
-        ...listDates.slice(0, index)
-      ];
-    }
+      function computeExpenses(expensesData) {
+        var mapMonths = {
+          JANEIRO: "JAN",
+          FEVEREIRO: "FEV",
+          MARÇO: "MAR",
+          MARCO: "MAR",
+          ABRIL: "ABR",
+          MAIO: "MAI",
+          JUNHO: "JUN",
+          JULHO: "JUL",
+          AGOSTO: "AGO",
+          SETEMBRO: "SET",
+          OUTUBRO: "OUT",
+          NOVEMBRO: "NOV",
+          DEZEMBRO: "DEZ",
+        };
+        var expenses = {};
+        var segments = {};
 
-    function filterByDate() {
-      var selected = document.getElementById("selectDate");
-      var dateSelected = selected ? selected.value.trim().toUpperCase().replace("/", "-") : "";
+        if (Array.isArray(expensesData)) {
+          expensesData.forEach(function (item) {
+            var value = parseFloat(item.value) || 0;
+            var segment = item.segment
+              ? item.segment.toString().trim()
+              : "Outros";
+            var rawMonth = item.month
+              ? item.month.toString().trim().toUpperCase()
+              : "";
+            var year = item.year ? item.year.toString().trim() : "";
 
-      var assetsFiltered = allAssets.filter(function(item) {
-        if (!item.date) return false;
-        var itemDate = item.date.trim().toUpperCase().replace("/", "-");
-        return itemDate === dateSelected;
-      });
+            if (rawMonth && year) {
+              var month =
+                mapMonths[rawMonth] || rawMonth.slice(0, 3).toUpperCase();
+              var dateKey = month + "-" + year;
 
-      updatePortfolio(dateSelected);
-      renderTable(assetsFiltered);
-    }
-  </script>
-</body>
+              expenses[dateKey] = (expenses[dateKey] || 0) + value;
+              segments[dateKey] = segments[dateKey] || {};
+              segments[dateKey][segment] =
+                (segments[dateKey][segment] || 0) + value;
+            }
+          });
+        }
+
+        return { monthlyExpenses: expenses, segmentsByMonth: segments };
+      }
+
+      function aggregateInvestmentItems(items) {
+        var mapping = {};
+        items.forEach(function (item) {
+          var key = item.product + "_" + item.date + "_" + item.group;
+          if (!mapping[key]) {
+            mapping[key] = {
+              product: item.product,
+              group: item.group,
+              positionValue: item.positionValue,
+              grossProfit: item.grossProfit,
+              grossReturn: item.grossReturn,
+              date: item.date,
+              investedAmount: item.investedAmount,
+              qty: 1,
+            };
+          } else {
+            mapping[key].positionValue += item.positionValue;
+            mapping[key].grossProfit += item.grossProfit;
+            mapping[key].investedAmount += item.investedAmount;
+            mapping[key].grossReturn += item.grossReturn;
+            mapping[key].qty += 1;
+          }
+        });
+        return mapping;
+      }
+
+      function computeDashboardData(investmentData, expensesData) {
+        var rawData = [];
+        var dateSet = {};
+
+        if (Array.isArray(investmentData)) {
+          investmentData.forEach(function (item) {
+            var rawDate = item.date
+              ? item.date.toString().trim().toUpperCase()
+              : "";
+            var product = item.product ? item.product.toString().trim() : "";
+            if (!product || !rawDate) return;
+
+            var grossProfit =
+              parseFloat(item.gross_profit) ||
+              parseFloat(item.grossProfit) ||
+              0;
+            var grossReturn =
+              parseFloat(item.gross_return) ||
+              parseFloat(item.grossReturn) ||
+              0;
+            var positionValue =
+              parseFloat(item.position_value) ||
+              parseFloat(item.positionValue) ||
+              0;
+            var group = item.group ? item.group.toString().trim() : "";
+            var investedAmount =
+              parseFloat(item.invested_amount) ||
+              parseFloat(item.investedAmount) ||
+              0;
+
+            var dateStr = rawDate.replace("/", "-");
+            dateSet[dateStr] = true;
+
+            rawData.push({
+              product: product,
+              group: group,
+              positionValue: positionValue,
+              grossProfit: grossProfit,
+              grossReturn: grossReturn,
+              date: dateStr,
+              investedAmount: investedAmount,
+            });
+          });
+        }
+
+        var mappedItems = aggregateInvestmentItems(rawData);
+        var investments = Object.keys(mappedItems).map(function (key) {
+          var item = mappedItems[key];
+          return {
+            product: item.product,
+            group: item.group,
+            positionValue: item.positionValue,
+            grossProfit: item.grossProfit,
+            grossReturn: item.qty > 0 ? item.grossReturn / item.qty : 0,
+            date: item.date,
+            investedAmount: item.qty > 0 ? item.investedAmount / item.qty : 0,
+          };
+        });
+
+        var expenses = computeExpenses(expensesData);
+        var dateLabels = Object.keys(expenses.monthlyExpenses);
+        var values = dateLabels.map(function (key) {
+          return expenses.monthlyExpenses[key];
+        });
+
+        return {
+          assets: investments,
+          dates: Object.keys(dateSet),
+          expenseTrend: {
+            labels: dateLabels,
+            values: values,
+            segments: expenses.segmentsByMonth,
+          },
+        };
+      }
+
+      function switchTab(tabId) {
+        document.querySelectorAll(".tab-content").forEach(function (el) {
+          el.classList.add("hidden");
+        });
+        document.getElementById("tab-" + tabId).classList.remove("hidden");
+
+        var tabs = ["summary", "expenses", "investments"];
+        tabs.forEach(function (t) {
+          var btn = document.getElementById("btn-tab-" + t);
+          if (t === tabId) {
+            btn.classList.remove(
+              "text-gray-500",
+              "border-transparent",
+              "hover:border-gray-200",
+            );
+            btn.classList.add("text-emerald-600", "border-emerald-600");
+          } else {
+            btn.classList.remove("text-emerald-600", "border-emerald-600");
+            btn.classList.add(
+              "text-gray-500",
+              "border-transparent",
+              "hover:border-gray-200",
+            );
+          }
+        });
+
+        var titles = {
+          summary: "Resumo Financeiro",
+          expenses: "Gestão de Despesas",
+          investments: "Visão Geral de Investimentos",
+        };
+        var titleEl = document.getElementById("header-title");
+        if (titleEl) titleEl.innerText = titles[tabId];
+      }
+
+      window.onload = function () {
+        loadData();
+      };
+
+      function loadData() {
+        if (isAppsScriptEnvironment()) {
+          Promise.all([
+            new Promise(function (resolve, reject) {
+              google.script.run
+                .withFailureHandler(reject)
+                .withSuccessHandler(resolve)
+                .getSummaryPortfolio();
+            }),
+            new Promise(function (resolve, reject) {
+              google.script.run
+                .withFailureHandler(reject)
+                .withSuccessHandler(resolve)
+                .getExpensesRecords();
+            }),
+            new Promise(function (resolve, reject) {
+              google.script.run
+                .withFailureHandler(reject)
+                .withSuccessHandler(resolve)
+                .getIncomingRecords();
+            }),
+            new Promise(function (resolve, reject) {
+              google.script.run
+                .withFailureHandler(reject)
+                .withSuccessHandler(resolve)
+                .getDataToDashboard();
+            }),
+          ])
+            .then(function (results) {
+              allExpensesData = results[0] || {
+                monthlyIncome: {},
+                monthlyExpenses: {},
+              };
+              allExpensesRecords = Array.isArray(results[1]) ? results[1] : [];
+              allIncomingRecords = Array.isArray(results[2]) ? results[2] : [];
+              var dashboardData = results[3] || {
+                assets: [],
+                dates: [],
+                expenseTrend: { labels: [], values: [], segments: {} },
+              };
+
+              processChart(dashboardData);
+              populateMonthFilter();
+            })
+            .catch(function (err) {
+              console.error("Erro ao carregar dados do servidor:", err);
+            });
+        } else {
+          Promise.all([
+            loadLocalJson("incoming"),
+            loadLocalJson("expenses"),
+            loadLocalJson("investment"),
+          ])
+            .then(function (results) {
+              var incomingData = results[0] || [];
+              var expensesData = results[1] || [];
+              var investmentData = results[2] || [];
+
+              allIncomingRecords = incomingData;
+              allExpensesRecords = expensesData.map(function (item) {
+                return Object.assign(
+                  { recordId: "exp-" + expensesRecordIdCounter++ },
+                  item,
+                );
+              });
+              allExpensesData = computeSummaryPortfolio(
+                incomingData,
+                expensesData,
+              );
+              var dashboardData = computeDashboardData(
+                investmentData,
+                expensesData,
+              );
+              processChart(dashboardData);
+              populateMonthFilter();
+            })
+            .catch(function (err) {
+              console.error("Erro ao carregar dados locais:", err);
+            });
+        }
+      }
+
+      function populateMonthFilter() {
+        var datesSet = new Set();
+        if (allExpensesData && allExpensesData.monthlyIncome) {
+          Object.keys(allExpensesData.monthlyIncome).forEach(function (k) {
+            datesSet.add(k);
+          });
+        }
+        if (allExpensesData && allExpensesData.monthlyExpenses) {
+          Object.keys(allExpensesData.monthlyExpenses).forEach(function (k) {
+            datesSet.add(k);
+          });
+        }
+        if (allAssets) {
+          allAssets.forEach(function (a) {
+            if (a.date)
+              datesSet.add(a.date.trim().toUpperCase().replace("/", "-"));
+          });
+        }
+
+        var datesArray = Array.from(datesSet);
+        if (datesArray.length === 0) return;
+
+        var months = [
+          "JAN",
+          "FEV",
+          "MAR",
+          "ABR",
+          "MAI",
+          "JUN",
+          "JUL",
+          "AGO",
+          "SET",
+          "OUT",
+          "NOV",
+          "DEZ",
+        ];
+        var today = new Date();
+        var currentMonthStr =
+          months[today.getMonth()] + "-" + today.getFullYear();
+
+        datesArray.sort(function (a, b) {
+          var partsA = a.split("-");
+          var partsB = b.split("-");
+          if (partsA.length !== 2 || partsB.length !== 2) return 0;
+          var yearA = parseInt(partsA[1]);
+          var yearB = parseInt(partsB[1]);
+          if (yearA !== yearB) return yearB - yearA;
+          var monthA = months.indexOf(partsA[0]);
+          var monthB = months.indexOf(partsB[0]);
+          return monthB - monthA;
+        });
+
+        var selectEl = document.getElementById("selectDate");
+        if (!selectEl) return;
+
+        selectEl.innerHTML = "";
+        var foundCurrent = false;
+        datesArray.forEach(function (d) {
+          var opt = document.createElement("option");
+          opt.value = d;
+          opt.text = d;
+          if (d === currentMonthStr) {
+            foundCurrent = true;
+            opt.selected = true;
+          }
+          selectEl.appendChild(opt);
+        });
+
+        if (!foundCurrent && datesArray.length > 0) {
+          selectEl.options[0].selected = true;
+        }
+
+        filterByDate();
+      }
+
+      function sortDates(listDates) {
+        if (!listDates || listDates.length === 0) return [];
+
+        const months = [
+          "JAN",
+          "FEV",
+          "MAR",
+          "ABR",
+          "MAI",
+          "JUN",
+          "JUL",
+          "AGO",
+          "SET",
+          "OUT",
+          "NOV",
+          "DEZ",
+        ];
+        const today = new Date();
+        const currentDate = `${months[today.getMonth()]}-${today.getFullYear()}`;
+
+        const index = listDates.indexOf(currentDate);
+
+        if (index === -1) return listDates;
+
+        return [...listDates.slice(index), ...listDates.slice(0, index)];
+      }
+
+      function sortDateKeys(dateKeys) {
+        var monthOrder = {
+          JAN: 1,
+          FEV: 2,
+          MAR: 3,
+          ABR: 4,
+          MAI: 5,
+          JUN: 6,
+          JUL: 7,
+          AGO: 8,
+          SET: 9,
+          OUT: 10,
+          NOV: 11,
+          DEZ: 12,
+        };
+        return dateKeys.slice().sort(function (a, b) {
+          var aParts = a.split("-");
+          var bParts = b.split("-");
+          if (aParts.length !== 2 || bParts.length !== 2) return 0;
+          var yearA = parseInt(aParts[1], 10);
+          var yearB = parseInt(bParts[1], 10);
+          if (yearA !== yearB) return yearA - yearB;
+          return (monthOrder[aParts[0]] || 0) - (monthOrder[bParts[0]] || 0);
+        });
+      }
+
+      function filterByDate() {
+        var selected = document.getElementById("selectDate");
+        var dateSelected = selected
+          ? selected.value.trim().toUpperCase().replace("/", "-")
+          : "";
+
+        selectedDateKey = dateSelected;
+
+        var assetsFiltered = allAssets.filter(function (item) {
+          if (!item.date) return false;
+          var itemDate = item.date.trim().toUpperCase().replace("/", "-");
+          return itemDate === dateSelected;
+        });
+
+        var expensesFiltered = filterExpensesByDate(dateSelected);
+        updatePortfolio(dateSelected);
+        updateExpensesSummary(dateSelected);
+        renderTable(assetsFiltered);
+        renderExpensesTable(expensesFiltered);
+      }
+    </script>
+  </body>
 </html>

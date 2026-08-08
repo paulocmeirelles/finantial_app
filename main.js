@@ -1,8 +1,8 @@
 function doGet() {
-  return HtmlService.createTemplateFromFile('index')
+  return HtmlService.createTemplateFromFile("index")
     .evaluate()
-    .setTitle('Dashboard de Investimentos')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .setTitle("Dashboard de Investimentos")
+    .addMetaTag("viewport", "width=device-width, initial-scale=1")
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
@@ -10,28 +10,94 @@ function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
-function getDataFromInvestmentTab() {
+function getJsonData(fileName) {
+  try {
+    if (typeof DriveApp !== "undefined") {
+      var folders = DriveApp.getFoldersByName("data");
+      while (folders.hasNext()) {
+        var folder = folders.next();
+        var files = folder.getFilesByName(fileName + ".json");
+        if (files.hasNext()) {
+          var file = files.next();
+          return JSON.parse(file.getBlob().getDataAsString());
+        }
+      }
+    } else if (typeof require !== "undefined") {
+      var fs = require("fs");
+      var path = require("path");
+      var filePath = path.join(__dirname, "data", fileName + ".json");
+      if (fs.existsSync(filePath)) {
+        return JSON.parse(fs.readFileSync(filePath, "utf8"));
+      }
+    }
+  } catch (e) {
+    console.error("Error reading " + fileName, e);
+  }
+  return [];
+}
+
+function getExpensesRecords() {
+  var data = getJsonData("expenses");
+  return Array.isArray(data) ? data : [];
+}
+
+function getIncomingRecords() {
+  var data = getJsonData("incoming");
+  return Array.isArray(data) ? data : [];
+}
+
+function saveExpensesData(expenses) {
   var spreadSheet = SpreadsheetApp.getActiveSpreadsheet();
-  var tab = spreadSheet.getSheetByName("investment");
+  var tab = spreadSheet.getSheetByName("expenses");
+
+  if (!tab) {
+    tab = spreadSheet.insertSheet("expenses");
+  }
+
+  tab.clearContents();
+  tab.appendRow(["expense", "value", "segment", "month", "year"]);
+
+  if (expenses && expenses.length > 0) {
+    var values = expenses.map(function (item) {
+      return [
+        item.expense || item.description || "",
+        parseFloat(item.value) || 0,
+        item.segment || "Outros",
+        item.month || "",
+        item.year || "",
+      ];
+    });
+    tab.getRange(2, 1, values.length, 5).setValues(values);
+  }
+
+  return true;
+}
+
+function getDataFromInvestmentTab() {
   var rawData = [];
   var dateSet = {};
+  var data = getJsonData("investment");
 
-  if (tab && tab.getLastRow() >= 2) {
-    var data = tab.getRange(2, 1, tab.getLastRow() - 1, 7).getValues();
-
+  if (data && data.length > 0) {
     for (var i = 0; i < data.length; i++) {
-      var row = data[i];
-      
-      var rawDate = row[0] ? row[0].toString().trim().toUpperCase() : "";
-      var product = row[1] ? row[1].toString().trim() : "";
+      var item = data[i];
+
+      var rawDate = item.date ? item.date.toString().trim().toUpperCase() : "";
+      var product = item.product ? item.product.toString().trim() : "";
 
       if (!product || !rawDate) continue;
 
-      var grossProfit = parseFloat(row[2]) || 0;
-      var grossReturn = parseFloat(row[3]) || 0;
-      var positionValue = parseFloat(row[4]) || 0;
-      var group = row[5] ? row[5].toString().trim() : "";
-      var investedAmount = parseFloat(row[6]) || 0;
+      var grossProfit =
+        parseFloat(item.gross_profit) || parseFloat(item.grossProfit) || 0;
+      var grossReturn =
+        parseFloat(item.gross_return) || parseFloat(item.grossReturn) || 0;
+      var positionValue =
+        parseFloat(item.position_value) || parseFloat(item.positionValue) || 0;
+      var group = item.group ? item.group.toString().trim() : "";
+      var investedAmount =
+        parseFloat(item.invested_amount) ||
+        parseFloat(item.investedAmount) ||
+        0;
 
       var dateStr = rawDate.replace("/", "-");
       dateSet[dateStr] = true;
@@ -43,30 +109,29 @@ function getDataFromInvestmentTab() {
         grossProfit: grossProfit,
         grossReturn: grossReturn,
         date: dateStr,
-        investedAmount: investedAmount
+        investedAmount: investedAmount,
       });
     }
   }
 
   var mappedItems = aggregateElements(rawData);
-  var investments = Object.keys(mappedItems).map(function(key) {
+  var investments = Object.keys(mappedItems).map(function (key) {
     var item = mappedItems[key];
     return {
       product: item.product,
       group: item.group,
       positionValue: item.positionValue,
       grossProfit: item.grossProfit,
-      grossReturn: item.qty > 0 ? (item.grossReturn / item.qty) : 0,
+      grossReturn: item.qty > 0 ? item.grossReturn / item.qty : 0,
       date: item.date,
-      investedAmount: item.qty > 0 ? (item.investedAmount / item.qty) : 0
+      investedAmount: item.qty > 0 ? item.investedAmount / item.qty : 0,
     };
   });
 
   return { investments: investments, dateSet: dateSet };
 }
 
-
-function aggregateElements(assetsList){
+function aggregateElements(assetsList) {
   var mapping = {};
 
   for (var k = 0; k < assetsList.length; k++) {
@@ -82,7 +147,7 @@ function aggregateElements(assetsList){
         grossReturn: item.grossReturn,
         date: item.date,
         investedAmount: item.investedAmount,
-        qty: 1
+        qty: 1,
       };
     } else {
       mapping[key].positionValue += item.positionValue;
@@ -93,30 +158,40 @@ function aggregateElements(assetsList){
     }
   }
 
-  return mapping
+  return mapping;
 }
 
 function getExpenses() {
-  var spreadSheet = SpreadsheetApp.getActiveSpreadsheet();
-  var tab = spreadSheet.getSheetByName("expenses");
-
   var expenses = {};
   var segments = {};
 
   var mapMonths = {
-    "JANEIRO": "JAN", "FEVEREIRO": "FEV", "MARÇO": "MAR", "MARCO": "MAR",
-    "ABRIL": "ABR", "MAIO": "MAI", "JUNHO": "JUN", "JULHO": "JUL",
-    "AGOSTO": "AGO", "SETEMBRO": "SET", "OUTUBRO": "OUT", "NOVEMBRO": "NOV", "DEZEMBRO": "DEZ"
+    JANEIRO: "JAN",
+    FEVEREIRO: "FEV",
+    MARÇO: "MAR",
+    MARCO: "MAR",
+    ABRIL: "ABR",
+    MAIO: "MAI",
+    JUNHO: "JUN",
+    JULHO: "JUL",
+    AGOSTO: "AGO",
+    SETEMBRO: "SET",
+    OUTUBRO: "OUT",
+    NOVEMBRO: "NOV",
+    DEZEMBRO: "DEZ",
   };
 
-  if (tab && tab.getLastRow() >= 2) {
-    var data = tab.getRange(2, 1, tab.getLastRow() - 1, 5).getValues();
+  var data = getJsonData("expenses");
 
+  if (data && data.length > 0) {
     for (var j = 0; j < data.length; j++) {
-      var value = parseFloat(data[j][1]) || 0;
-      var segment = data[j][2] ? data[j][2].toString().trim() : "Outros";
-      var rawMonth = data[j][3] ? data[j][3].toString().trim().toUpperCase() : "";
-      var year = data[j][4] ? data[j][4].toString().trim() : "";
+      var item = data[j];
+      var value = parseFloat(item.value) || 0;
+      var segment = item.segment ? item.segment.toString().trim() : "Outros";
+      var rawMonth = item.month
+        ? item.month.toString().trim().toUpperCase()
+        : "";
+      var year = item.year ? item.year.toString().trim() : "";
 
       if (rawMonth && year) {
         var month = mapMonths[rawMonth] || rawMonth.slice(0, 3);
@@ -139,32 +214,32 @@ function getExpenses() {
 }
 
 function getDataToDashboard() {
-  var {investments, dateSet} = getDataFromInvestmentTab()
+  var { investments, dateSet } = getDataFromInvestmentTab();
 
   var listDate = Object.keys(dateSet);
 
-  var expenses = getExpenses()
-  
+  var expenses = getExpenses();
+
   var dateLabels = Object.keys(expenses.monthlyExpenses);
-  var values = dateLabels.map(function(key) {
+  var values = dateLabels.map(function (key) {
     return expenses.monthlyExpenses[key];
   });
-  
+
   return {
     assets: investments,
     dates: listDate,
     expenseTrend: {
       labels: dateLabels,
       values: values,
-      segments: expenses.segmentsByMonth
-    }
+      segments: expenses.segmentsByMonth,
+    },
   };
 }
 
 function saveExpenses(expenses) {
   var spreadSheet = SpreadsheetApp.getActiveSpreadsheet();
   var tab = spreadSheet.getSheetByName("expenses");
-  
+
   if (!tab) {
     tab = spreadSheet.insertSheet("expenses");
     tab.appendRow(["expense", "value", "segment", "month", "year"]);
@@ -180,7 +255,7 @@ function saveExpenses(expenses) {
 function saveIncome(incoming) {
   var spreadSheet = SpreadsheetApp.getActiveSpreadsheet();
   var tab = spreadSheet.getSheetByName("incoming");
-  
+
   if (!tab) {
     tab = spreadSheet.insertSheet("incoming");
     tab.appendRow(["month", "year", "name", "value"]);
@@ -194,20 +269,18 @@ function saveIncome(incoming) {
 }
 
 function getSummaryPortfolio() {
-  var spreadSheet = SpreadsheetApp.getActiveSpreadsheet();
-  
-  var tabIncoming = spreadSheet.getSheetByName("incoming");
-  var tabExpenses = spreadSheet.getSheetByName("expenses");
-
   var incomingJson = {};
   var expensesJson = {};
 
-  if (tabIncoming && tabIncoming.getLastRow() >= 2) {
-    var dataIncoming = tabIncoming.getRange(2, 1, tabIncoming.getLastRow() - 1, 4).getValues();
+  var dataIncoming = getJsonData("incoming");
+  var dataExpenses = getJsonData("expenses");
+
+  if (dataIncoming && dataIncoming.length > 0) {
     for (var i = 0; i < dataIncoming.length; i++) {
-      var month = dataIncoming[i][0] ? dataIncoming[i][0].toString().trim().toUpperCase() : "";
-      var year = dataIncoming[i][1] ? dataIncoming[i][1].toString().trim() : "";
-      var value = parseFloat(dataIncoming[i][3]) || 0;
+      var item = dataIncoming[i];
+      var month = item.month ? item.month.toString().trim().toUpperCase() : "";
+      var year = item.year ? item.year.toString().trim() : "";
+      var value = parseFloat(item.value) || 0;
 
       if (month && year) {
         var key = month + "-" + year;
@@ -216,12 +289,14 @@ function getSummaryPortfolio() {
     }
   }
 
-  if (tabExpenses && tabExpenses.getLastRow() >= 2) {
-    var dataExpenses = tabExpenses.getRange(2, 1, tabExpenses.getLastRow() - 1, 5).getValues();
+  if (dataExpenses && dataExpenses.length > 0) {
     for (var j = 0; j < dataExpenses.length; j++) {
-      var value = parseFloat(dataExpenses[j][1]) || 0;
-      var month = dataExpenses[j][3] ? dataExpenses[j][3].toString().trim().toUpperCase() : "";
-      var year = dataExpenses[j][4] ? dataExpenses[j][4].toString().trim() : "";
+      var itemExp = dataExpenses[j];
+      var value = parseFloat(itemExp.value) || 0;
+      var month = itemExp.month
+        ? itemExp.month.toString().trim().toUpperCase()
+        : "";
+      var year = itemExp.year ? itemExp.year.toString().trim() : "";
 
       if (month && year) {
         var key = month.slice(0, 3).toUpperCase() + "-" + year;
@@ -232,19 +307,23 @@ function getSummaryPortfolio() {
 
   return {
     monthlyIncome: incomingJson,
-    monthlyExpenses: expensesJson
+    monthlyExpenses: expensesJson,
   };
 }
 
 function getCSVData(sheetName) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
   if (!sheet) throw new Error("Aba '" + sheetName + "' não encontrada.");
-  
+
   var data = sheet.getDataRange().getValues();
-  return data.map(row => row.map(val => `"${val}"`).join(";")).join("\n");
+  return data.map((row) => row.map((val) => `"${val}"`).join(";")).join("\n");
 }
 
 function getXLSXDownloadURL() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  return "https://docs.google.com/spreadsheets/d/" + ss.getId() + "/export?format=xlsx";
+  return (
+    "https://docs.google.com/spreadsheets/d/" +
+    ss.getId() +
+    "/export?format=xlsx"
+  );
 }

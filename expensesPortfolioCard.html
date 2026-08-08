@@ -1,0 +1,117 @@
+<!-- Card 1: Resumo de Despesas -->
+<div
+  class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-full flex flex-col justify-between"
+>
+  <h2 class="text-xs font-semibold uppercase text-gray-400 mb-4 tracking-wider">
+    Resumo de Despesas
+  </h2>
+
+  <div class="grid grid-cols-2 gap-4 mb-4 pb-4 border-b border-gray-100">
+    <div>
+      <span class="text-xs text-gray-500">Renda do Mês</span>
+      <p class="text-2xl font-bold text-emerald-600" id="expenseIncome">
+        R$ 0,00
+      </p>
+    </div>
+    <div>
+      <span class="text-xs text-gray-500">Gastos do Mês</span>
+      <p class="text-2xl font-bold text-red-500" id="expenseExpenses">
+        R$ 0,00
+      </p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 gap-4">
+    <div>
+      <span class="text-xs text-gray-500">Diferença</span>
+      <p class="text-xl font-bold text-slate-900" id="expenseDifference">
+        0% / R$ 0,00
+      </p>
+    </div>
+    <div>
+      <span class="text-xs text-gray-500">Disponível para Investir</span>
+      <p class="text-xl font-bold text-emerald-600" id="expenseAvailableInvest">
+        R$ 0,00
+      </p>
+    </div>
+  </div>
+</div>
+<script>
+  function updateExpensesSummary(selectedDates) {
+    if (!selectedDates) {
+      var select = document.getElementById("selectDate");
+      selectedDates = select ? select.value : "TODOS";
+    }
+
+    var totalIncome = 0;
+    var totalExpenses = 0;
+
+    if (selectedDates === "TODOS" || !selectedDates) {
+      if (allIncomingRecords) {
+        allIncomingRecords.forEach(function (item) {
+          totalIncome += parseFloat(item.value) || 0;
+        });
+      }
+      if (allExpensesRecords) {
+        allExpensesRecords.forEach(function (item) {
+          totalExpenses += parseFloat(item.value) || 0;
+        });
+      }
+    } else {
+      if (allIncomingRecords) {
+        allIncomingRecords.forEach(function (item) {
+          var key = item.month
+            ? item.month.toString().trim().toUpperCase()
+            : "";
+          var year = item.year ? item.year.toString().trim() : "";
+          if (key && year && key + "-" + year === selectedDates) {
+            totalIncome += parseFloat(item.value) || 0;
+          }
+        });
+      }
+      if (allExpensesRecords) {
+        allExpensesRecords.forEach(function (item) {
+          var key = item.month
+            ? item.month.toString().trim().toUpperCase()
+            : "";
+          var year = item.year ? item.year.toString().trim() : "";
+          if (key && year && key + "-" + year === selectedDates) {
+            totalExpenses += parseFloat(item.value) || 0;
+          }
+        });
+      }
+    }
+
+    var difference = totalIncome - totalExpenses;
+    var percentage = totalIncome > 0 ? (difference / totalIncome) * 100 : 0;
+    var formattedDifference =
+      Math.abs(percentage).toFixed(2) +
+      "% / R$ " +
+      difference.toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    var availableToInvest = totalIncome - totalExpenses;
+
+    document.getElementById("expenseIncome").innerText =
+      "R$ " +
+      totalIncome.toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    document.getElementById("expenseExpenses").innerText =
+      "R$ " +
+      totalExpenses.toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    document.getElementById("expenseDifference").innerText =
+      formattedDifference;
+    document.getElementById("expenseAvailableInvest").innerText =
+      "R$ " +
+      availableToInvest.toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+  }
+</script>
