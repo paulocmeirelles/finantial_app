@@ -1,0 +1,55 @@
+<!-- Card 1: Patrimônio / Rendimento -->
+<div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-full flex flex-col justify-between">
+  <h2 class="text-xs font-semibold uppercase text-gray-400 mb-4 tracking-wider">Patrimônio / Rendimento Selecionado</h2>
+  
+  <!-- Linha 1: Saldo Total e Rendimento Bruto -->
+  <div class="grid grid-cols-2 gap-4 mb-4 pb-4 border-b border-gray-100">
+    <div>
+      <span class="text-xs text-gray-500">Saldo Total</span>
+      <p class="text-2xl font-bold text-emerald-600" id="totalPortfolio">R$ 0,00</p>
+    </div>
+    <div>
+      <span class="text-xs text-gray-500">Rendimento Bruto</span>
+      <p class="text-2xl font-bold text-emerald-600" id="totalGrossReturn">R$ 0,00</p>
+    </div>
+  </div>
+
+  <!-- Linha 2: Renda e Gastos do Mês Selecionado -->
+  <div class="grid grid-cols-2 gap-4">
+    <div>
+      <span class="text-xs text-gray-500">Renda do Mês</span>
+      <p class="text-xl font-bold text-emerald-600" id="allIncome">R$ 0,00</p>
+    </div>
+    <div>
+      <span class="text-xs text-gray-500">Gastos do Mês</span>
+      <p class="text-xl font-bold text-red-500" id="allExpenses">R$ 0,00</p>
+    </div>
+  </div>
+</div>
+<script>
+  function updatePortfolio(selectedDates) {
+    if (!selectedDates) {
+      var select = document.getElementById("selectDate");
+      selectedDates = select ? select.value : "TODOS";
+    }
+
+    var totalIncome = 0;
+    var totalExpenses = 0;
+
+    if (selectedDates === "TODOS" || !selectedDates) {
+      for (var k in allExpensesData.monthlyIncome) {
+        totalIncome += allExpensesData.monthlyIncome[k];
+      }
+      for (var g in allExpensesData.monthlyExpenses) {
+        totalExpenses += allExpensesData.monthlyExpenses[g];
+      }
+    } else {
+      var key = selectedDates.replace("/", "-");
+      totalIncome = allExpensesData.monthlyIncome[key] || 0;
+      totalExpenses = allExpensesData.monthlyExpenses[key] || 0;
+    }
+
+    document.getElementById("allIncome").innerText = "R$ " + totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    document.getElementById("allExpenses").innerText = "R$ " + totalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+</script>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard Financeiro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+  </style>
+</head>
+<body class="text-gray-800 antialiased p-4 md:p-6">
+
+  <!-- Header -->
+  <?!= include('indexHeader'); ?>
+
+  <!-- Tab Containers -->
+  <div id="tab-summary" class="tab-content flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-6 w-full max-w-7xl mx-auto">
+    <!-- Card 1: Portfolio -->
+    <div class="w-full lg:w-1/2">
+      <?!= include('portfolioCard'); ?>
+    </div>
+
+    <!-- Card 2: Expenses -->
+    <div class="w-full lg:w-1/2">
+      <?!= include('expensesChart'); ?>
+    </div>
+  </div>
+
+  <div id="tab-expenses" class="tab-content hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <!-- Future expenses cards -->
+  </div>
+
+  <div id="tab-investments" class="tab-content hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <!-- Card 3: Resources -->
+    <?!= include('buttonsResources'); ?>
+
+    <!-- Card 4: Assets -->
+    <?!= include('assets'); ?>
+  </div>
+
+  <script>
+    var allAssets = [];
+    var expensesChart = null;
+    var allExpensesData = { monthlyIncome: {}, monthlyExpenses: {} };
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(function(el) {
+        el.classList.add('hidden');
+      });
+      document.getElementById('tab-' + tabId).classList.remove('hidden');
+      
+      var tabs = ['summary', 'expenses', 'investments'];
+      tabs.forEach(function(t) {
+        var btn = document.getElementById('btn-tab-' + t);
+        if (t === tabId) {
+          btn.classList.remove('text-gray-500', 'border-transparent', 'hover:border-gray-200');
+          btn.classList.add('text-emerald-600', 'border-emerald-600');
+        } else {
+          btn.classList.remove('text-emerald-600', 'border-emerald-600');
+          btn.classList.add('text-gray-500', 'border-transparent', 'hover:border-gray-200');
+        }
+      });
+      
+      var titles = {
+        'summary': 'Resumo Financeiro',
+        'expenses': 'Gestão de Despesas',
+        'investments': 'Visão Geral de Investimentos'
+      };
+      var titleEl = document.getElementById('header-title');
+      if (titleEl) titleEl.innerText = titles[tabId];
+    }
+
+    window.onload = function() {
+      loadData();
+    };
+
+    function loadData() {
+      google.script.run
+        .withSuccessHandler(function(summary) {
+          allExpensesData = summary || { monthlyIncome: {}, monthlyExpenses: {} };
+          // updatePortfolio(); // Called later via filterByDate() when populating filter
+
+          google.script.run
+            .withSuccessHandler(function(data) {
+              processChart(data);
+              populateMonthFilter();
+            })
+            .getDataToDashboard();
+        })
+        .getSummaryPortfolio();
+    }
+
+    function populateMonthFilter() {
+      var datesSet = new Set();
+      if (allExpensesData && allExpensesData.monthlyIncome) {
+        Object.keys(allExpensesData.monthlyIncome).forEach(function(k) { datesSet.add(k); });
+      }
+      if (allExpensesData && allExpensesData.monthlyExpenses) {
+        Object.keys(allExpensesData.monthlyExpenses).forEach(function(k) { datesSet.add(k); });
+      }
+      if (allAssets) {
+        allAssets.forEach(function(a) { 
+          if (a.date) datesSet.add(a.date.trim().toUpperCase().replace("/", "-")); 
+        });
+      }
+      
+      var datesArray = Array.from(datesSet);
+      if (datesArray.length === 0) return;
+      
+      var months = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+      var today = new Date();
+      var currentMonthStr = months[today.getMonth()] + "-" + today.getFullYear();
+      
+      datesArray.sort(function(a, b) {
+        var partsA = a.split('-');
+        var partsB = b.split('-');
+        if (partsA.length !== 2 || partsB.length !== 2) return 0;
+        var yearA = parseInt(partsA[1]);
+        var yearB = parseInt(partsB[1]);
+        if (yearA !== yearB) return yearB - yearA;
+        var monthA = months.indexOf(partsA[0]);
+        var monthB = months.indexOf(partsB[0]);
+        return monthB - monthA;
+      });
+
+      var selectEl = document.getElementById("selectDate");
+      if (!selectEl) return;
+      
+      selectEl.innerHTML = "";
+      var foundCurrent = false;
+      datesArray.forEach(function(d) {
+        var opt = document.createElement("option");
+        opt.value = d;
+        opt.text = d;
+        if (d === currentMonthStr) {
+          foundCurrent = true;
+          opt.selected = true;
+        }
+        selectEl.appendChild(opt);
+      });
+      
+      if (!foundCurrent && datesArray.length > 0) {
+        selectEl.options[0].selected = true;
+      }
+      
+      filterByDate();
+    }
+
+
+    function sortDates(listDates) {
+      if (!listDates || listDates.length === 0) return [];
+      
+      const months = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+      const today = new Date();
+      const currentDate = `${months[today.getMonth()]}-${today.getFullYear()}`;
+
+      const index = listDates.indexOf(currentDate);
+
+      if (index === -1) return listDates;
+
+      return [
+        ...listDates.slice(index),
+        ...listDates.slice(0, index)
+      ];
+    }
+
+    function filterByDate() {
+      var selected = document.getElementById("selectDate");
+      var dateSelected = selected ? selected.value.trim().toUpperCase().replace("/", "-") : "";
+
+      var assetsFiltered = allAssets.filter(function(item) {
+        if (!item.date) return false;
+        var itemDate = item.date.trim().toUpperCase().replace("/", "-");
+        return itemDate === dateSelected;
+      });
+
+      updatePortfolio(dateSelected);
+      renderTable(assetsFiltered);
+    }
+  </script>
+</body>
+</html>

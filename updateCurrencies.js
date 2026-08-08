@@ -1,0 +1,4 @@
+function updateCurriencies() {
+  searchBitCoinExchange()
+  searchDolarExchange()
+}

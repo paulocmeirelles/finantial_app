@@ -1,0 +1,334 @@
+<!-- Card 3: Recursos (Adicionar Gastos e Adicionar Renda) -->
+<div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+  <div>
+    <h2 class="text-xs font-semibold uppercase text-gray-400 mb-2 tracking-wider">Recursos</h2>
+    <p class="text-xs text-gray-500 mb-4">Gerencie novos lançamentos de despesas e receitas.</p>
+    
+    <div class="flex flex-col gap-3">
+      <button onclick="openModalIncome()" class="w-full flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 font-medium py-2.5 px-4 rounded-xl transition text-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        Adicionar Renda
+      </button>
+      <button onclick="openModalExpenses()" class="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 font-medium py-2.5 px-4 rounded-xl transition text-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        <!-- <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg> -->
+        Adicionar Gastos
+      </button>
+    </div>
+  </div>
+  <button onclick="openModalExpensesDownload()" class="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 px-4 rounded-xl transition text-sm">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+    </svg>
+    Download Gastos
+  </button>
+  <!-- <div class="bg-gray-50 p-3 rounded-xl border border-gray-100 mt-4">
+    <div class="flex justify-between text-xs font-medium text-gray-600 mb-1">
+      <span>Metas 2026</span>
+      <span>82%</span>
+    </div>
+    <div class="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+      <div class="bg-emerald-500 h-full w-[82%]"></div>
+    </div>
+  </div> -->
+</div>
+
+<!-- Modal Adicionar Gastos -->
+<div id="modalExpenses" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+    <div class="p-4 md:p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+      <h3 class="font-bold text-gray-900 text-lg">Adicionar Gastos</h3>
+      <button onclick="closeModalExpenses()" class="text-gray-400 hover:text-gray-600 font-bold text-xl">&times;</button>
+    </div>
+
+    <div class="p-4 md:p-6 overflow-x-auto flex-1">
+      <table class="w-full text-left text-sm min-w-[650px]">
+        <thead>
+          <tr class="text-xs uppercase text-gray-400 font-medium border-b border-gray-100 pb-2">
+            <th class="pb-2">Gastos</th>
+            <th class="pb-2 w-32">Valor (R$)</th>
+            <th class="pb-2 w-44">Segmento</th>
+            <th class="pb-2 w-28">Mês</th>
+            <th class="pb-2 w-28">Ano</th>
+            <th class="pb-2 w-12 text-center">Ação</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyExpenses">
+          <!-- Linhas dinâmicas entram aqui -->
+        </tbody>
+      </table>
+
+      <button onclick="addRowExpenses()" class="mt-4 flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 rounded-lg transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        Adicionar Linha
+      </button>
+    </div>
+
+    <div class="p-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
+      <button onclick="closeModalExpenses()" class="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition">Cancelar</button>
+      <button onclick="saveExpenses()" class="px-5 py-2 text-sm font-medium bg-red-500 hover:bg-red-600 text-white rounded-xl shadow-sm transition">Inserir</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Adicionar Renda -->
+<div id="modalIncome" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+    <div class="p-4 md:p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+      <h3 class="font-bold text-gray-900 text-lg">Adicionar Renda</h3>
+      <button onclick="closeModalIncome()" class="text-gray-400 hover:text-gray-600 font-bold text-xl">&times;</button>
+    </div>
+
+    <div class="p-4 md:p-6 overflow-x-auto flex-1">
+      <table class="w-full text-left text-sm min-w-[550px]">
+        <thead>
+          <tr class="text-xs uppercase text-gray-400 font-medium border-b border-gray-100 pb-2">
+            <th class="pb-2 w-28">Mês</th>
+            <th class="pb-2 w-28">Ano</th>
+            <th class="pb-2 w-44">Nome</th>
+            <th class="pb-2 w-36">Valor (R$)</th>
+            <th class="pb-2 w-12 text-center">Ação</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyIncome">
+          <!-- Linhas dinâmicas entram aqui -->
+        </tbody>
+      </table>
+
+      <button onclick="addRowIncome()" class="mt-4 flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 rounded-lg transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+        Adicionar Linha
+      </button>
+    </div>
+
+    <div class="p-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
+      <button onclick="closeModalIncome()" class="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition">Cancelar</button>
+      <button onclick="saveIncome()" class="px-5 py-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm transition">Inserir</button>
+    </div>
+  </div>
+</div>
+<script>
+    var segmentList = ["Saúde","Entretenimento","Educação","Casamento","Vestimenta","Carro","Pet","Estética","Passeios/Comida","Presentes","Dízimo","Contas de casa","Transporte","Mercado","Eletrônicos","Outros"];
+    var monthsList = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+    var incomeList = ["Salário", "Adiantamento Salário", "Dividendos", "Renda Extra", "Outros", "PLR/Bonus"];
+    
+    var yearList = [];
+    for (var y = 2010; y <= 2030; y++) {
+      yearList.push(y);
+    }
+
+    function buildSelectOptions(options, selectedVal) {
+      return options.map(function(opt) {
+        return `<option value="${opt}" ${opt == selectedVal ? 'selected' : ''}>${opt}</option>`;
+      }).join('');
+    }
+
+    function openModalExpenses() {
+      document.getElementById("tbodyExpenses").innerHTML = "";
+      addRowExpenses();
+      document.getElementById("modalExpenses").classList.remove("hidden");
+      document.getElementById("modalExpenses").classList.add("flex");
+    }
+
+    function closeModalExpenses() {
+      document.getElementById("modalExpenses").classList.add("hidden");
+      document.getElementById("modalExpenses").classList.remove("flex");
+    }
+
+    function addRowExpenses() {
+      var tbody = document.getElementById("tbodyExpenses");
+      var tr = document.createElement("tr");
+      tr.className = "border-b border-gray-50 hover:bg-gray-50/50 transition";
+      
+      tr.innerHTML = `
+        <td class="py-2 pr-2"><input type="text" placeholder="Descrição do gasto" class="inp-expense w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-red-500 focus:border-red-500"></td>
+        <td class="py-2 pr-2"><input type="number" step="0.01" placeholder="0,00" class="inp-value w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-red-500 focus:border-red-500"></td>
+        <td class="py-2 pr-2"><select class="sel-segment w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-red-500 focus:border-red-500">${buildSelectOptions(segmentList)}</select></td>
+        <td class="py-2 pr-2"><select class="sel-month w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-red-500 focus:border-red-500">${buildSelectOptions(monthsList, monthsList[new Date().getMonth()])}</select></td>
+        <td class="py-2 pr-2"><select class="sel-year w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-red-500 focus:border-red-500">${buildSelectOptions(yearList, new Date().getFullYear())}</select></td>
+        <td class="py-2 text-center">
+          <button onclick="removeRow(this)" class="p-1.5 text-gray-400 hover:text-red-500 transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function saveExpenses() {
+      var rows = document.querySelectorAll("#tbodyExpenses tr");
+      var sendData = [];
+
+      rows.forEach(function(row) {
+        var expense = row.querySelector(".inp-expense").value.trim();
+        var value = parseFloat(row.querySelector(".inp-value").value) || 0;
+        var segment = row.querySelector(".sel-segment").value;
+        var month = row.querySelector(".sel-month").value;
+        var year = row.querySelector(".sel-year").value;
+
+        if (expense && value > 0) {
+          sendData.push([expense, value, segment, month, year]);
+        }
+      });
+
+      if (sendData.length === 0) {
+        alert("Preencha ao menos uma linha válida de gasto com descrição e valor.");
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function() {
+          closeModalExpenses();
+          loadData();
+        })
+        .withFailureHandler(function(err) {
+          alert("Erro ao inserir gastos: " + err.message);
+        })
+        .saveExpenses(sendData);
+    }
+
+    function openModalIncome() {
+      document.getElementById("tbodyIncome").innerHTML = "";
+      addRowIncome();
+      document.getElementById("modalIncome").classList.remove("hidden");
+      document.getElementById("modalIncome").classList.add("flex");
+    }
+
+    function closeModalIncome() {
+      document.getElementById("modalIncome").classList.add("hidden");
+      document.getElementById("modalIncome").classList.remove("flex");
+    }
+
+    function addRowIncome() {
+      var tbody = document.getElementById("tbodyIncome");
+      var tr = document.createElement("tr");
+      tr.className = "border-b border-gray-50 hover:bg-gray-50/50 transition";
+      
+      tr.innerHTML = `
+        <td class="py-2 pr-2"><select class="sel-month w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500">${buildSelectOptions(monthsList)}</select></td>
+        <td class="py-2 pr-2"><select class="sel-year w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500">${buildSelectOptions(yearList, 2026)}</select></td>
+        <td class="py-2 pr-2"><select class="sel-name w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500">${buildSelectOptions(incomeList)}</select></td>
+        <td class="py-2 pr-2"><input type="number" step="0.01" placeholder="0,00" class="inp-value w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"></td>
+        <td class="py-2 text-center">
+          <button onclick="removeRow(this)" class="p-1.5 text-gray-400 hover:text-red-500 transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function saveIncome() {
+      var rows = document.querySelectorAll("#tbodyIncome tr");
+      var sendData = [];
+
+      rows.forEach(function(row) {
+        var month = row.querySelector(".sel-month").value;
+        var year = row.querySelector(".sel-year").value;
+        var name = row.querySelector(".sel-name").value;
+        var value = parseFloat(row.querySelector(".inp-value").value) || 0;
+
+        if (value > 0) {
+          sendData.push([month, year, name, value]);
+        }
+      });
+
+      if (sendData.length === 0) {
+        alert("Preencha ao menos uma linha válida de renda com valor maior que 0.");
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function() {
+          closeModalIncome();
+          loadData();
+        })
+        .withFailureHandler(function(err) {
+          alert("Erro ao inserir renda: " + err.message);
+        })
+        .saveIncome(sendData);
+    }
+
+    function removeRow(btn) {
+      var row = btn.closest("tr");
+      var tbody = row.parentElement;
+      if (tbody.children.length > 1) {
+        row.remove();
+      } else {
+        alert("A tabela deve conter ao menos uma linha.");
+      }
+    }
+
+  function openModalExpensesDownload() {
+    document.getElementById("modalExpensesDownload").classList.remove("hidden");
+    document.getElementById("modalExpensesDownload").classList.add("flex");
+  }
+
+  function closeModalExpensesDownload() {
+    document.getElementById("modalExpensesDownload").classList.add("hidden");
+    document.getElementById("modalExpensesDownload").classList.remove("flex");
+  }
+
+  function expensesDownload() {
+    var format = document.querySelector('input[name="formatDownload"]:checked').value;
+    var btn = document.getElementById("btnConfirmDownload");
+    
+    var requirePassword = document.getElementById("requirePassword")?.checked;
+    var password = document.getElementById("downloadPassword")?.value;
+
+    if (requirePassword && !password) {
+      alert("Por favor, digite a senha que deseja usar.");
+      return;
+    }
+
+    if (requirePassword) {
+       // A implementation for encrypted ZIP/PDF would go here.
+       // Currently Google Apps Script natively does not support saving XLSX with password.
+       alert("Funcionalidade de proteção por senha em desenvolvimento no backend.");
+       // Can just return or proceed without password for now based on implementation
+       return;
+    }
+
+    btn.disabled = true;
+    btn.innerText = "Gerando arquivo...";
+
+    if (format === "xlsx") {
+      google.script.run
+        .withSuccessHandler(function(url) {
+          btn.disabled = false;
+          btn.innerText = "Baixar Arquivo";
+          closeModalExpensesDownload();
+          window.open(url, "_blank");
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.innerText = "Baixar Arquivo";
+          alert("Erro ao gerar arquivo XLSX: " + err.message);
+        })
+        .getXLSXDownloadURL("expenses");
+
+    } else if (format === "csv") {
+      google.script.run
+        .withSuccessHandler(function(csvContent) {
+          btn.disabled = false;
+          btn.innerText = "Baixar Arquivo";
+          closeModalExpensesDownload();
+
+          var blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+          var link = document.createElement("a");
+          var url = URL.createObjectURL(blob);
+          link.setAttribute("href", url);
+          link.setAttribute("download", "gastos_expenses.csv");
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.innerText = "Baixar Arquivo";
+          alert("Erro ao baixar CSV: " + err.message);
+        })
+        .getCSVData("expenses");
+    }
+  }
+</script>
