@@ -5,7 +5,7 @@ Based on the feature requirements in `features/1-1-1_filter_month.md`, here is t
 ## 1. UI Updates (`indexHeader.html`)
 We will add a dropdown (`<select>`) element for the month filter into the header.
 
-- **Changes**: Add the dropdown to the right side of the header, next to the "Deploy Ativo" badge.
+- **Changes**: Add the dropdown to the right side of the header, inplace of the "Deploy Ativo" badge.
 - **HTML Structure**:
   ```html
   <div class="flex items-center gap-3">
@@ -13,7 +13,6 @@ We will add a dropdown (`<select>`) element for the month filter into the header
     <select id="selectDate" onchange="filterByDate()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2">
       <!-- Options will be populated via JS -->
     </select>
-    <span class="bg-emerald-500 text-white font-medium text-xs px-3 py-1.5 rounded-full uppercase tracking-wider">Deploy Ativo</span>
   </div>
   ```
 
