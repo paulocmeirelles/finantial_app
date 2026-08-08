@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard Financeiro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+  </style>
+</head>
+<body class="text-gray-800 antialiased p-4 md:p-6">
+
+  <!-- Header -->
+  <header class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm mb-6">
+    <div class="flex items-center gap-3">
+      <div class="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+      </div>
+      <h1 class="text-xl font-bold text-gray-900">Visão Geral de Investimentos</h1>
+    </div>
+    <div class="flex items-center gap-3">
+      <span class="bg-emerald-500 text-white font-medium text-xs px-3 py-1.5 rounded-full uppercase tracking-wider">Deploy Ativo</span>
+    </div>
+  </header>
+
+  <!-- Grid Principal -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+    <!-- Card 1: Patrimônio / Rendimento -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <h2 class="text-xs font-semibold uppercase text-gray-400 mb-4 tracking-wider">Patrimônio / Rendimento Selecionado</h2>
+      
+      <!-- Linha 1: Saldo Total e Rendimento Bruto -->
+      <div class="grid grid-cols-2 gap-4 mb-4 pb-4 border-b border-gray-100">
+        <div>
+          <span class="text-xs text-gray-500">Saldo Total</span>
+          <p class="text-2xl font-bold text-emerald-600" id="totalPatrimonio">R$ 0,00</p>
+        </div>
+        <div>
+          <span class="text-xs text-gray-500">Rendimento Bruto</span>
+          <p class="text-2xl font-bold text-emerald-600" id="totalRendimento">R$ 0,00</p>
+        </div>
+      </div>
+
+      <!-- Linha 2: Renda e Gastos do Mês Selecionado -->
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <span class="text-xs text-gray-500">Renda do Mês</span>
+          <p class="text-xl font-bold text-emerald-600" id="totalRenda">R$ 0,00</p>
+        </div>
+        <div>
+          <span class="text-xs text-gray-500">Gastos do Mês</span>
+          <p class="text-xl font-bold text-red-500" id="totalGastos">R$ 0,00</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: Gráfico de Evolução de Gastos -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+      <h2 class="text-xs font-semibold uppercase text-gray-400 mb-2 tracking-wider">Evolução de Gastos</h2>
+      <div class="h-44">
+        <canvas id="graficoEvolucaoGastos"></canvas>
+      </div>
+    </div>
+
+    <!-- Card 3: Recursos (Adicionar Gastos e Adicionar Renda) -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+      <div>
+        <h2 class="text-xs font-semibold uppercase text-gray-400 mb-2 tracking-wider">Recursos</h2>
+        <p class="text-xs text-gray-500 mb-4">Gerencie novos lançamentos de despesas e receitas.</p>
+        
+        <div class="flex flex-col gap-3">
+          <button onclick="abrirModalRenda()" class="w-full flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 font-medium py-2.5 px-4 rounded-xl transition text-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            Adicionar Renda
+          </button>
+          <button onclick="abrirModalGastos()" class="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 font-medium py-2.5 px-4 rounded-xl transition text-sm">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <!-- <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg> -->
+            Adicionar Gastos
+          </button>
+        </div>
+      </div>
+      <button onclick="abrirModalDownloadGastos()" class="w-full flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 px-4 rounded-xl transition text-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+        </svg>
+        Download Gastos
+      </button>
+      <!-- <div class="bg-gray-50 p-3 rounded-xl border border-gray-100 mt-4">
+        <div class="flex justify-between text-xs font-medium text-gray-600 mb-1">
+          <span>Metas 2026</span>
+          <span>82%</span>
+        </div>
+        <div class="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+          <div class="bg-emerald-500 h-full w-[82%]"></div>
+        </div>
+      </div> -->
+    </div>
+
+    <!-- Modal Adicionar Gastos -->
+    <div id="modalGastos" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+        <div class="p-4 md:p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+          <h3 class="font-bold text-gray-900 text-lg">Adicionar Gastos</h3>
+          <button onclick="fecharModalGastos()" class="text-gray-400 hover:text-gray-600 font-bold text-xl">&times;</button>
+        </div>
+
+        <div class="p-4 md:p-6 overflow-x-auto flex-1">
+          <table class="w-full text-left text-sm min-w-[650px]">
+            <thead>
+              <tr class="text-xs uppercase text-gray-400 font-medium border-b border-gray-100 pb-2">
+                <th class="pb-2">Gastos</th>
+                <th class="pb-2 w-32">Valor (R$)</th>
+                <th class="pb-2 w-44">Segmento</th>
+                <th class="pb-2 w-28">Mês</th>
+                <th class="pb-2 w-28">Ano</th>
+                <th class="pb-2 w-12 text-center">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyGastos">
+              <!-- Linhas dinâmicas entram aqui -->
+            </tbody>
+          </table>
+
+          <button onclick="adicionarLinhaGasto()" class="mt-4 flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 rounded-lg transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            Adicionar Linha
+          </button>
+        </div>
+
+        <div class="p-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
+          <button onclick="fecharModalGastos()" class="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition">Cancelar</button>
+          <button onclick="salvarGastos()" class="px-5 py-2 text-sm font-medium bg-red-500 hover:bg-red-600 text-white rounded-xl shadow-sm transition">Inserir</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Adicionar Renda -->
+    <div id="modalRenda" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+        <div class="p-4 md:p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+          <h3 class="font-bold text-gray-900 text-lg">Adicionar Renda</h3>
+          <button onclick="fecharModalRenda()" class="text-gray-400 hover:text-gray-600 font-bold text-xl">&times;</button>
+        </div>
+
+        <div class="p-4 md:p-6 overflow-x-auto flex-1">
+          <table class="w-full text-left text-sm min-w-[550px]">
+            <thead>
+              <tr class="text-xs uppercase text-gray-400 font-medium border-b border-gray-100 pb-2">
+                <th class="pb-2 w-28">Mês</th>
+                <th class="pb-2 w-28">Ano</th>
+                <th class="pb-2 w-44">Nome</th>
+                <th class="pb-2 w-36">Valor (R$)</th>
+                <th class="pb-2 w-12 text-center">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyRenda">
+              <!-- Linhas dinâmicas entram aqui -->
+            </tbody>
+          </table>
+
+          <button onclick="adicionarLinhaRenda()" class="mt-4 flex items-center gap-1.5 text-xs font-semibold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 rounded-lg transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            Adicionar Linha
+          </button>
+        </div>
+
+        <div class="p-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
+          <button onclick="fecharModalRenda()" class="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition">Cancelar</button>
+          <button onclick="salvarRenda()" class="px-5 py-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm transition">Inserir</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 4: Tabela com Ativos + Dropdown Mês/Ano -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 md:col-span-2 lg:col-span-3">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+        <div>
+          <h2 class="text-xs font-semibold uppercase text-gray-400 tracking-wider">Meus Ativos (Histórico Ações)</h2>
+          <p class="text-xs text-gray-500">Exibindo posições referentes ao período selecionado</p>
+        </div>
+        
+        <!-- Dropdown Mês/Ano -->
+        <div class="flex items-center gap-2">
+          <label for="selectMesAno" class="text-xs font-semibold text-gray-600 uppercase">Período (Mês/Ano):</label>
+          <select id="selectMesAno" onchange="filtrarPorMesAno()" class="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2 font-medium">
+            <option value="">Carregando...</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead>
+            <tr class="border-b border-gray-100 text-gray-400 font-medium text-xs uppercase">
+              <th class="pb-3">Produto</th>
+              <th class="pb-3">Grupo</th>
+              <th class="pb-3">Investidos</th>
+              <th class="pb-3">Rendimento Bruto</th>
+              <th class="pb-3">Rentabilidade Bruta</th>
+              <th class="pb-3">Saldo Bruto</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaAtivos" class="divide-y divide-gray-50 text-gray-700">
+            <tr>
+              <td colspan="5" class="py-4 text-center text-gray-400">Carregando dados da planilha...</td>
+            </tr>
+          </tbody>
+          <tfoot id="tfootAtivos" class="border-t border-gray-200 font-bold text-gray-900 bg-gray-50/50">
+            <!-- As somatórias da tabela entram aqui via JS -->
+          </tfoot>
+        </table>
+      </div>
+    </div>
+    <!-- Modal Download Gastos -->
+    <div id="modalDownloadGastos" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-md flex flex-col overflow-hidden">
+        <div class="p-4 md:p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+          <h3 class="font-bold text-gray-900 text-lg">Baixar Planilha de Gastos</h3>
+          <button onclick="fecharModalDownloadGastos()" class="text-gray-400 hover:text-gray-600 font-bold text-xl">&times;</button>
+        </div>
+
+        <div class="p-6">
+          <p class="text-sm text-gray-600 mb-4">Escolha o formato em que deseja exportar os dados da aba <strong>expenses</strong>:</p>
+          
+          <div class="space-y-3">
+            <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition">
+              <input type="radio" name="formatoDownload" value="xlsx" checked class="w-4 h-4 text-emerald-600 focus:ring-emerald-500">
+              <div class="ml-3">
+                <span class="block text-sm font-semibold text-gray-800">Microsoft Excel (.xlsx)</span>
+                <span class="block text-xs text-gray-500">Formato padrão para planilhas do Excel</span>
+              </div>
+            </label>
+
+            <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition">
+              <input type="radio" name="formatoDownload" value="csv" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500">
+              <div class="ml-3">
+                <span class="block text-sm font-semibold text-gray-800">Valores Separados por Vírgula (.csv)</span>
+                <span class="block text-xs text-gray-500">Ideal para importar em outros sistemas</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="p-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
+          <button onclick="fecharModalDownloadGastos()" class="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition">Cancelar</button>
+          <button onclick="executarDownloadGastos()" id="btnConfirmarDownload" class="px-5 py-2 text-sm font-medium bg-slate-800 hover:bg-slate-900 text-white rounded-xl shadow-sm transition flex items-center gap-2">
+            <span>Baixar Arquivo</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    var todosAtivos = [];
+    var meuGraficoGastos = null;
+    var dadosRendaGastoGlobal = { rendaPorMes: {}, gastosPorMes: {} };
+
+    window.onload = function() {
+      carregarDados();
+    };
+
+    function carregarDados() {
+      // Carrega os dados normais da carteira
+      google.script.run
+        .withSuccessHandler(function(dados) {
+          processarDashboard(dados);
+          
+          // Busca a renda e gastos em paralelo ou em seguida
+          google.script.run
+            .withSuccessHandler(function(resumo) {
+              dadosRendaGastoGlobal = resumo;
+              atualizarCardsFinanceiros(); // Atualiza com base no filtro selecionado
+            })
+            .obterResumoRendaEGastos();
+        })
+        .buscarDadosDashboard();
+    }
+
+    function sortDates(listDates){
+      const months = [
+        "JAN", "FEV", "MAR", "ABR", "MAI", "JUN",
+        "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"
+      ];
+      console.log(typeof listDates)
+      console.log(listDates)
+
+      const today = new Date();
+      const currentDate = `${months[today.getMonth()]}-${today.getFullYear()}`;
+
+      const index = listDates.indexOf(currentDate);
+
+      const sortedList = [
+        ...listDates.slice(index),
+        ...listDates.slice(0, index)
+      ];
+      console.log(sortedList)
+      return sortedList
+    }
+
+    function processarDashboard(resposta) {
+      if (!resposta) return;
+
+      todosAtivos = resposta.ativos || [];
+
+      // Popula o Dropdown Mês/Ano
+      var select = document.getElementById("selectMesAno");
+      select.innerHTML = "";
+
+      let sortedList = sortDates(resposta.opcoesMesAno)
+      if (resposta.opcoesMesAno && resposta.opcoesMesAno.length > 0) {
+        sortedList.forEach(function(mesAno) {
+          var option = document.createElement("option");
+          option.value = mesAno;
+          option.text = mesAno;
+          select.appendChild(option);
+        });
+
+        // Seleciona o primeiro Mês/Ano automaticamente e renderiza
+        filtrarPorMesAno();
+      } else {
+        select.innerHTML = `<option value="">Nenhum período encontrado</option>`;
+        document.getElementById("tabelaAtivos").innerHTML = `<tr><td colspan="5" class="py-4 text-center text-gray-400">Nenhum dado encontrado na aba Histórico Ações.</td></tr>`;
+      }
+
+      // Renderiza o gráfico de gastos
+      if (resposta.evolucaoGastos) {
+        renderizarGraficoGastos(
+          resposta.evolucaoGastos.labels, 
+          resposta.evolucaoGastos.valores,
+          resposta.evolucaoGastos.segmentos
+        );
+      }
+    }
+
+
+    function filtrarPorMesAno() {
+      var selectMesAno = document.getElementById("selectMesAno");
+      var mesAnoSelecionado = selectMesAno ? selectMesAno.value : "TODOS";
+      console.log(mesAnoSelecionado)
+
+      var ativosFiltrados = todosAtivos.filter(function(item) {
+        return item.mesAno === mesAnoSelecionado;
+      });
+      atualizarCardsFinanceiros(mesAnoSelecionado);
+      renderizarTabela(ativosFiltrados);
+    }
+
+    function renderizarTabela(dados) {
+      var htmlTabela = "";
+      var totalSaldo = 0;
+      var totalRendimento = 0;
+      var totalInvestido = 0;
+      var rentabilidadeSoma = 0;
+      var rentabilidadeContagem = 0;
+
+      if (dados.length === 0) {
+        document.getElementById("tabelaAtivos").innerHTML = `<tr><td colspan="5" class="py-4 text-center text-gray-400">Nenhum registro para o período selecionado.</td></tr>`;
+        document.getElementById("tfootAtivos").innerHTML = "";
+        document.getElementById("totalPatrimonio").innerText = "R$ 0,00";
+        document.getElementById("totalRendimento").innerText = "R$ 0,00";
+        return;
+      }
+
+      var rentabilidadeMedia = 0
+      var rentabilidadeContagem = 0
+      for (var i = 0; i < dados.length; i++) {
+        var item = dados[i];
+        
+        totalSaldo += item.saldoBruto;
+        totalRendimento += item.rendimentoBruto;
+        totalInvestido += item.valorInvestido;
+
+        // Formata Rentabilidade
+        var rentabilidadeTxt = item.rentabilidadeBruta;
+        if (typeof rentabilidadeTxt === 'number') {
+          rentabilidadeMedia += item.rentabilidadeBruta * 100
+          rentabilidadeTxt = (rentabilidadeTxt * 100).toFixed(2);
+          rentabilidadeContagem += 1
+        }
+
+        htmlTabela += `<tr class="hover:bg-gray-50 transition">
+          <td class="py-3 font-semibold text-gray-900">${item.produto}</td>
+          <td class="py-3"><span class="bg-gray-100 text-gray-600 px-2 py-1 rounded-md text-xs">${item.grupo || '-'}</span></td>
+          <td class="py-3 ${item.valorInvestido > 0 ? 'text-emerald-600' : 'text-gray-600'}">R$ ${item.valorInvestido.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+          <td class="py-3 ${item.rendimentoBruto >= 0 ? 'text-emerald-600' : 'text-red-500'}">R$ ${item.rendimentoBruto.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+          <td class="py-3 ${Number(rentabilidadeTxt) >= 0 ? 'text-emerald-600' : 'text-red-500'}">${rentabilidadeTxt || '-'}%</td>
+          <td class="py-3 font-medium">R$ ${item.saldoBruto.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+        </tr>`;
+      }
+      rentabilidadeMedia = (rentabilidadeMedia/rentabilidadeContagem).toFixed(2)
+      // Rodapé da tabela com somatórias
+      var htmlFoot = `<tr>
+        <td class="py-3 uppercase text-xs">Total do Período</td>
+        <td class="py-3"></td>
+        <td class="py-3 ${totalInvestido >= 0 ? 'text-emerald-600' : 'text-grey-600'}">R$ ${totalInvestido.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+        <td class="py-3 ${totalRendimento >= 0 ? 'text-emerald-600' : 'text-red-500'}">R$ ${totalRendimento.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+        <td class="py-3 ${rentabilidadeMedia >= 0 ? 'text-emerald-600' : 'text-red-500'}"> ${rentabilidadeMedia.toLocaleString('pt-BR', {minimumFractionDigits: 2})}%</td>
+        <td class="py-3">R$ ${totalSaldo.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</td>
+      </tr>`;
+
+      document.getElementById("tabelaAtivos").innerHTML = htmlTabela;
+      document.getElementById("tfootAtivos").innerHTML = htmlFoot;
+
+      // Atualiza os cards superiores com a somatória do mês selecionado
+      document.getElementById("totalPatrimonio").innerText = "R$ " + totalSaldo.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+      var elementRendimento = document.getElementById("totalRendimento");
+      elementRendimento.innerText = "R$ " + totalRendimento.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+      if (totalRendimento < 0) {
+        elementRendimento.classList.remove("text-emerald-600");
+        elementRendimento.classList.add("text-red-500");
+      } else {
+        elementRendimento.classList.remove("text-red-500");
+        elementRendimento.classList.add("text-emerald-600");
+      }
+    }
+
+  function renderizarGraficoGastos(labels, valores, segmentos) {
+    var ctx = document.getElementById('graficoEvolucaoGastos').getContext('2d');
+    
+    if (meuGraficoGastos) {
+      meuGraficoGastos.destroy();
+    }
+
+    meuGraficoGastos = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels.length > 0 ? labels : ['Sem Dados'],
+        datasets: [{
+          label: 'Gastos Totais',
+          data: valores.length > 0 ? valores : [0],
+          borderColor: '#ef4444',
+          backgroundColor: 'rgba(239, 68, 68, 0.08)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 4,
+          pointBackgroundColor: '#ef4444'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        // Guarda os segmentos nas opções do gráfico para uso na tooltip customizada
+        customSegmentos: segmentos || {}, 
+        plugins: { 
+          legend: { display: false },
+          tooltip: {
+            enabled: false, // Desativa a tooltip nativa
+            external: externalTooltipHandler // Usa nosso renderizador customizado
+          }
+        },
+        scales: {
+          x: { grid: { display: false } },
+          y: { 
+            grid: { borderDash: [4, 4] },
+            ticks: {
+              callback: function(value) {
+                return 'R$ ' + value;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  function externalTooltipHandler(context) {
+    var tooltipEl = document.getElementById('chartjs-tooltip');
+
+    // 1. Cria o elemento div do tooltip caso ainda não exista no DOM
+    if (!tooltipEl) {
+      tooltipEl = document.createElement('div');
+      tooltipEl.id = 'chartjs-tooltip';
+      tooltipEl.style.background = 'rgba(15, 23, 42, 0.90)'; // Fundo escuro elegante (slate-900)
+      tooltipEl.style.borderRadius = '10px';
+      tooltipEl.style.color = '#ffffff';
+      tooltipEl.style.opacity = '0';
+      tooltipEl.style.pointerEvents = 'none';
+      tooltipEl.style.position = 'absolute';
+      tooltipEl.style.transition = 'all .15s ease';
+      tooltipEl.style.padding = '10px 14px';
+      tooltipEl.style.fontSize = '12px';
+      tooltipEl.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.3)';
+      tooltipEl.style.zIndex = '100';
+      document.body.appendChild(tooltipEl);
+    }
+
+    var tooltipModel = context.tooltip;
+
+    // Esconde o tooltip se o mouse sair do ponto
+    if (tooltipModel.opacity === 0) {
+      tooltipEl.style.opacity = '0';
+      return;
+    }
+
+    if (tooltipModel.body) {
+      var dataIndex = tooltipModel.dataPoints[0].dataIndex;
+      var chart = context.chart;
+      var mesAno = chart.data.labels[dataIndex];
+      var valorTotal = chart.data.datasets[0].data[dataIndex];
+      var detalheSegmentos = chart.options.customSegmentos ? chart.options.customSegmentos[mesAno] : null;
+
+      // Cabeçalho do Tooltip
+      var html = '<div style="font-weight: 700; font-size: 13px; margin-bottom: 6px; border-b: 1px solid rgba(255,255,255,0.1); pb: 4px;">Período: ' + mesAno + '</div>';
+      
+      // Gastos Totais (Quadradinho Vermelho)
+      html += '<div style="display:flex; align-items:center; margin-bottom: 6px;">';
+      html += '  <span style="display:inline-block; width:10px; height:10px; background:#ef4444; border-radius:2px; margin-right:8px;"></span>';
+      html += '  <span style="font-weight:600;">Gastos Totais: R$ ' + valorTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</span>';
+      html += '</div>';
+
+      // Detalhamento por Segmento (Quadradinhos de cores dinâmicas)
+      if (detalheSegmentos && Object.keys(detalheSegmentos).length > 0) {
+        html += '<div style="border-top: 1px solid rgba(255,255,255,0.15); padding-top: 6px; margin-top: 4px;">';
+        html += '  <div style="color: #94a3b8; font-size: 11px; margin-bottom: 4px; font-weight: 600; uppercase">Por Segmento:</div>';
+        
+        // Paleta de cores Hexadecimal Tailwind para os segmentos
+        var coresHex = ['#3b82f6', '#10b981', '#f59e0b', '#a855f7', '#ec4899', '#06b6d4', '#84cc16'];
+        var idx = 0;
+
+        for (var seg in detalheSegmentos) {
+          var cor = coresHex[idx % coresHex.length];
+          var val = detalheSegmentos[seg];
+
+          html += '<div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top: 3px;">';
+          html += '  <div style="display:flex; align-items:center;">';
+          html += '    <span style="display:inline-block; width:8px; height:8px; background:' + cor + '; border-radius:2px; margin-right:8px;"></span>';
+          html += '    <span>' + seg + '</span>';
+          html += '  </div>';
+          html += '  <span style="font-weight:600;">R$ ' + val.toLocaleString('pt-BR', {minimumFractionDigits: 2}) + '</span>';
+          html += '</div>';
+          idx++;
+        }
+        html += '</div>';
+      }
+
+      tooltipEl.innerHTML = html;
+    }
+
+    // 2. Posicionamento do Tooltip em relação ao Canvas
+    var position = context.chart.canvas.getBoundingClientRect();
+    tooltipEl.style.opacity = '1';
+    tooltipEl.style.left = position.left + window.pageXOffset + tooltipModel.caretX + 10 + 'px';
+    tooltipEl.style.top = position.top + window.pageYOffset + tooltipModel.caretY - 20 + 'px';
+  }
+  // Sobre gastos e renda
+  // Opções dos Dropdowns
+    var segmentosList = ["Saúde","Entretenimento","Educação","Casamento","Vestimenta","Carro","Pet","Estética","Passeios/Comida","Presentes","Dízimo","Contas de casa","Transporte","Mercado","Eletrônicos","Outros"];
+    var mesesList = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+    var nomesRendaList = ["Salário", "Adiantamento Salário", "Dividendos", "Renda Extra", "Outros", "PLR/Bonus"];
+    
+    var anosList = [];
+    for (var y = 2010; y <= 2030; y++) {
+      anosList.push(y);
+    }
+
+    // Auxiliares para gerar tags <select>
+    function buildSelectOptions(options, selectedVal) {
+      return options.map(function(opt) {
+        return `<option value="${opt}" ${opt == selectedVal ? 'selected' : ''}>${opt}</option>`;
+      }).join('');
+    }
+
+    // Modal Gastos Logic
+    function abrirModalGastos() {
+      document.getElementById("tbodyGastos").innerHTML = "";
+      adicionarLinhaGasto();
+      document.getElementById("modalGastos").classList.remove("hidden");
+      document.getElementById("modalGastos").classList.add("flex");
+    }
+
+    function fecharModalGastos() {
+      document.getElementById("modalGastos").classList.add("hidden");
+      document.getElementById("modalGastos").classList.remove("flex");
+    }
+
+    function adicionarLinhaGasto() {
+      var tbody = document.getElementById("tbodyGastos");
+      var tr = document.createElement("tr");
+      tr.className = "border-b border-gray-50 hover:bg-gray-50/50 transition";
+      
+      tr.innerHTML = `
+        <td class="py-2 pr-2"><input type="text" placeholder="Descrição do gasto" class="inp-gasto w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-red-500 focus:border-red-500"></td>
+        <td class="py-2 pr-2"><input type="number" step="0.01" placeholder="0,00" class="inp-valor w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-red-500 focus:border-red-500"></td>
+        <td class="py-2 pr-2"><select class="sel-segmento w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-red-500 focus:border-red-500">${buildSelectOptions(segmentosList)}</select></td>
+        <td class="py-2 pr-2"><select class="sel-mes w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-red-500 focus:border-red-500">${buildSelectOptions(mesesList, mesesList[new Date().getMonth()])}</select></td>
+        <td class="py-2 pr-2"><select class="sel-ano w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-red-500 focus:border-red-500">${buildSelectOptions(anosList, new Date().getFullYear())}</select></td>
+        <td class="py-2 text-center">
+          <button onclick="removerLinha(this)" class="p-1.5 text-gray-400 hover:text-red-500 transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function salvarGastos() {
+      var linhas = document.querySelectorAll("#tbodyGastos tr");
+      var dadosEnviar = [];
+
+      linhas.forEach(function(row) {
+        var gasto = row.querySelector(".inp-gasto").value.trim();
+        var valor = parseFloat(row.querySelector(".inp-valor").value) || 0;
+        var segmento = row.querySelector(".sel-segmento").value;
+        var mes = row.querySelector(".sel-mes").value;
+        var ano = row.querySelector(".sel-ano").value;
+
+        if (gasto && valor > 0) {
+          dadosEnviar.push([gasto, valor, segmento, mes, ano]);
+        }
+      });
+
+      if (dadosEnviar.length === 0) {
+        alert("Preencha ao menos uma linha válida de gasto com descrição e valor.");
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function() {
+          fecharModalGastos();
+          carregarDados(); // Recarrega os dados e atualiza os gráficos
+        })
+        .withFailureHandler(function(err) {
+          alert("Erro ao inserir gastos: " + err.message);
+        })
+        .salvarExpenses(dadosEnviar);
+    }
+
+    // Modal Renda Logic
+    function abrirModalRenda() {
+      document.getElementById("tbodyRenda").innerHTML = "";
+      adicionarLinhaRenda();
+      document.getElementById("modalRenda").classList.remove("hidden");
+      document.getElementById("modalRenda").classList.add("flex");
+    }
+
+    function fecharModalRenda() {
+      document.getElementById("modalRenda").classList.add("hidden");
+      document.getElementById("modalRenda").classList.remove("flex");
+    }
+
+    function adicionarLinhaRenda() {
+      var tbody = document.getElementById("tbodyRenda");
+      var tr = document.createElement("tr");
+      tr.className = "border-b border-gray-50 hover:bg-gray-50/50 transition";
+      
+      tr.innerHTML = `
+        <td class="py-2 pr-2"><select class="sel-mes w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500">${buildSelectOptions(mesesList)}</select></td>
+        <td class="py-2 pr-2"><select class="sel-ano w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500">${buildSelectOptions(anosList, 2026)}</select></td>
+        <td class="py-2 pr-2"><select class="sel-nome w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500">${buildSelectOptions(nomesRendaList)}</select></td>
+        <td class="py-2 pr-2"><input type="number" step="0.01" placeholder="0,00" class="inp-valor w-full border border-gray-200 rounded-lg p-2 text-sm focus:ring-emerald-500 focus:border-emerald-500"></td>
+        <td class="py-2 text-center">
+          <button onclick="removerLinha(this)" class="p-1.5 text-gray-400 hover:text-red-500 transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function salvarRenda() {
+      var linhas = document.querySelectorAll("#tbodyRenda tr");
+      var dadosEnviar = [];
+
+      linhas.forEach(function(row) {
+        var mes = row.querySelector(".sel-mes").value;
+        var ano = row.querySelector(".sel-ano").value;
+        var nome = row.querySelector(".sel-nome").value;
+        var valor = parseFloat(row.querySelector(".inp-valor").value) || 0;
+
+        if (valor > 0) {
+          dadosEnviar.push([mes, ano, nome, valor]);
+        }
+      });
+
+      if (dadosEnviar.length === 0) {
+        alert("Preencha ao menos uma linha válida de renda com valor maior que 0.");
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function() {
+          fecharModalRenda();
+          carregarDados();
+        })
+        .withFailureHandler(function(err) {
+          alert("Erro ao inserir renda: " + err.message);
+        })
+        .salvarIncome(dadosEnviar);
+    }
+
+    function removerLinha(btn) {
+      var row = btn.closest("tr");
+      var tbody = row.parentElement;
+      if (tbody.children.length > 1) {
+        row.remove();
+      } else {
+        alert("A tabela deve conter ao menos uma linha.");
+      }
+    }
+
+  // Download de gastos
+  function abrirModalDownloadGastos() {
+    document.getElementById("modalDownloadGastos").classList.remove("hidden");
+    document.getElementById("modalDownloadGastos").classList.add("flex");
+  }
+
+  function fecharModalDownloadGastos() {
+    document.getElementById("modalDownloadGastos").classList.add("hidden");
+    document.getElementById("modalDownloadGastos").classList.remove("flex");
+  }
+
+  function executarDownloadGastos() {
+    var formato = document.querySelector('input[name="formatoDownload"]:checked').value;
+    var btn = document.getElementById("btnConfirmarDownload");
+    
+    btn.disabled = true;
+    btn.innerText = "Gerando arquivo...";
+
+    if (formato === "xlsx") {
+      // Baixa via exportação nativa do Google Drive para XLSX
+      google.script.run
+        .withSuccessHandler(function(url) {
+          btn.disabled = false;
+          btn.innerText = "Baixar Arquivo";
+          fecharModalDownloadGastos();
+          
+          // Abre a URL de download automático em uma nova aba
+          window.open(url, "_blank");
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.innerText = "Baixar Arquivo";
+          alert("Erro ao gerar arquivo XLSX: " + err.message);
+        })
+        .obterUrlDownloadXLSX("expenses");
+
+    } else if (formato === "csv") {
+      // Baixa os dados em formato CSV gerando o arquivo direto no navegador
+      google.script.run
+        .withSuccessHandler(function(csvContent) {
+          btn.disabled = false;
+          btn.innerText = "Baixar Arquivo";
+          fecharModalDownloadGastos();
+
+          // Cria um Blob e faz o download localmente
+          var blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+          var link = document.createElement("a");
+          var url = URL.createObjectURL(blob);
+          link.setAttribute("href", url);
+          link.setAttribute("download", "gastos_expenses.csv");
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.innerText = "Baixar Arquivo";
+          alert("Erro ao baixar CSV: " + err.message);
+        })
+        .obterDadosCSV("expenses");
+    }
+  }
+
+  // Talvez dê erro aqui
+
+  // 3. Atualiza os elementos HTML de Renda do Mês e Gastos do Mês
+  function atualizarCardsFinanceiros(mesAnoSelecionado) {
+    if (!mesAnoSelecionado) {
+      var select = document.getElementById("selectMesAno");
+      mesAnoSelecionado = select ? select.value : "TODOS";
+    }
+
+    var rendaTotal = 0;
+    var gastoTotal = 0;
+
+    if (mesAnoSelecionado === "TODOS" || !mesAnoSelecionado) {
+      // Se selecionado "TODOS", soma todos os meses
+      for (var k in dadosRendaGastoGlobal.rendaPorMes) {
+        rendaTotal += dadosRendaGastoGlobal.rendaPorMes[k];
+      }
+      for (var g in dadosRendaGastoGlobal.gastosPorMes) {
+        gastoTotal += dadosRendaGastoGlobal.gastosPorMes[g];
+      }
+    } else {
+      // Busca exatamente a chave selecionada (ex: "DEZ/2025" ou "JAN/2026")
+      // Trata variações de formato com traço ou barra se necessário (ex: "DEZ-2025" -> "DEZ/2025")
+      var chaveFormatada = mesAnoSelecionado.replace("-", "/");
+      
+      rendaTotal = dadosRendaGastoGlobal.rendaPorMes[chaveFormatada] || 0;
+      gastoTotal = dadosRendaGastoGlobal.gastosPorMes[chaveFormatada] || 0;
+    }
+
+    // Atualiza os valores na tela
+    document.getElementById("totalRenda").innerText = "R$ " + rendaTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    document.getElementById("totalGastos").innerText = "R$ " + gastoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  </script>
+</body>
+</html>
